@@ -1,0 +1,16 @@
+.DS_Store
+Thumbs.db
+node_modules/
+dist/
+.venv/
+venv/
+.env
+.env.*
+config.js
+__pycache__/
+*.pyc
+pinmap.db
+instance/
+
+.codex/
+.agents/

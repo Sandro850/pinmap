@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Um site inutilmente honesto para contar visitas e marcar mensagens em um mapa."
+    >
+    <title>Pinmap</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://basemaps.cartocdn.com">
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
+    >
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+    >
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
+    >
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body>
+    <header class="site-header">
+      <div>
+        <p class="eyebrow">pinmap</p>
+        <h1 data-i18n="hero.title">Marque de onde voce veio.</h1>
+      </div>
+      <div class="header-tools">
+        <label class="language-picker">
+          <span data-i18n="language.label">Idioma</span>
+          <select id="languageSelect" aria-label="Idioma">
+            <option value="pt-BR">PT</option>
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+            <option value="fr">FR</option>
+          </select>
+        </label>
+        <div class="counter" aria-live="polite">
+          <span id="visitCount">0</span>
+          <small id="visitLabel" data-i18n="counter.label">visitas suas neste navegador</small>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="controls-panel" aria-label="Controles do pinmap">
+        <form id="pinForm" class="pin-form">
+          <h2 data-i18n="form.title">Deixe seu pin</h2>
+          <input id="visitorName" name="visitorName" type="hidden" value="Visitante anonimo">
+
+          <div class="field origin-field">
+            <label for="origin" data-i18n="form.origin">Origem</label>
+            <input
+              id="origin"
+              name="origin"
+              maxlength="80"
+              placeholder="Cidade, estado ou pais"
+              data-i18n-placeholder="form.origin.placeholder"
+              autocomplete="address-level2"
+              required
+            >
+          </div>
+
+          <div class="coordinates">
+            <div class="field">
+              <label for="latitude" data-i18n="form.latitude">Latitude</label>
+              <input id="latitude" name="latitude" inputmode="decimal" required>
+            </div>
+
+            <div class="field">
+              <label for="longitude" data-i18n="form.longitude">Longitude</label>
+              <input id="longitude" name="longitude" inputmode="decimal" required>
+            </div>
+          </div>
+
+          <p class="hint" data-i18n="form.hint">Clique no mapa para escolher o ponto, ou use sua localizacao atual.</p>
+
+          <div class="actions">
+            <button type="button" id="locateButton" class="secondary" data-i18n="form.locate">Colocar pin na minha localizacao</button>
+            <button type="submit" data-i18n="form.submit">Fixar pin</button>
+          </div>
+        </form>
+
+        <section class="messages" aria-labelledby="messagesTitle">
+          <div class="section-heading">
+            <h2 id="messagesTitle" data-i18n="pins.title">Pins recentes</h2>
+          </div>
+          <ul id="pinList"></ul>
+        </section>
+      </section>
+
+      <section class="map-panel" aria-label="Mapa de visitantes">
+        <div id="map"></div>
+      </section>
+    </main>
+
+    <template id="pinItemTemplate">
+      <li>
+        <strong></strong>
+        <span></span>
+        <time></time>
+      </li>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <script src="{{ url_for('static', filename='i18n.js') }}"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+  </body>
+</html>

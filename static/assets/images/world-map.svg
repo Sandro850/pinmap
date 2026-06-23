@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 180" role="img" aria-labelledby="title desc">
+  <title id="title">Mapa-mundi simplificado</title>
+  <desc id="desc">Mapa vetorial leve para marcar pins por latitude e longitude.</desc>
+  <rect width="360" height="180" fill="#152033"/>
+  <path d="M0 0h360v180H0z" fill="#111827"/>
+  <g fill="#1f8f70" stroke="#59d8ae" stroke-width="0.8" opacity="0.95">
+    <path d="M37 33 54 26l25 6 14 13-4 18 13 14-6 19-20 10-7 22 13 17-10 18-18-10-10-25-17-19 7-22-16-20 7-19z"/>
+    <path d="M91 104 111 99l13 12-3 24-12 19-16-10-7-21z"/>
+    <path d="M145 43 170 35l42 3 31 12 30-3 35 12-15 17-39-2-25 10-33-7-22 12-36-4-18-18z"/>
+    <path d="M169 84 194 80l24 12 10 26-8 29-19 16-20-13-15-32z"/>
+    <path d="M229 76 257 73l31 14 22 25-9 20-27-10-14-17-25-2z"/>
+    <path d="M285 128 306 126l13 15-9 17-22-6z"/>
+    <path d="M125 125 145 122l8 11-9 10-20-5z"/>
+    <path d="M68 25 82 17l16 7-4 11-19 2z"/>
+  </g>
+  <g fill="none" stroke="#31415f" stroke-width="0.5" opacity="0.8">
+    <path d="M0 30h360M0 60h360M0 90h360M0 120h360M0 150h360"/>
+    <path d="M30 0v180M60 0v180M90 0v180M120 0v180M150 0v180M180 0v180M210 0v180M240 0v180M270 0v180M300 0v180M330 0v180"/>
+  </g>
+</svg>
