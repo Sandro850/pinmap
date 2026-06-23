@@ -15,6 +15,7 @@ from moderation import normalize_text
 
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE_PATH = BASE_DIR / "pinmap.db"
+DATABASE_URL = os.environ.get("DATABASE_URL")
 ALLOWED_PIN_FIELDS = {"name", "origin", "lat", "lng", "message"}
 BLOCKED_ORIGIN_TERMS = {
     "spam",
@@ -35,7 +36,13 @@ app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 2048
 
 
-def get_connection() -> sqlite3.Connection:
+def get_connection() -> Any:
+    if DATABASE_URL:
+        import psycopg
+        from psycopg.rows import dict_row
+
+        return psycopg.connect(DATABASE_URL, row_factory=dict_row)
+
     connection = sqlite3.connect(DATABASE_PATH)
     connection.row_factory = sqlite3.Row
     return connection
@@ -43,37 +50,69 @@ def get_connection() -> sqlite3.Connection:
 
 def init_db() -> None:
     with get_connection() as connection:
-        connection.execute(
-            """
-            create table if not exists pins (
-                id integer primary key autoincrement,
-                name text not null,
-                origin text not null,
-                message text not null,
-                lat real not null,
-                lng real not null,
-                is_approved integer not null default 1,
-                created_at text not null default current_timestamp
+        if DATABASE_URL:
+            connection.execute(
+                """
+                create table if not exists pins (
+                    id bigserial primary key,
+                    name text not null,
+                    origin text not null,
+                    message text not null default '',
+                    lat double precision not null,
+                    lng double precision not null,
+                    is_approved boolean not null default true,
+                    created_at timestamptz not null default now()
+                )
+                """
             )
-            """
-        )
+            connection.execute(
+                """
+                create table if not exists visits (
+                    id bigserial primary key,
+                    created_at timestamptz not null default now()
+                )
+                """
+            )
+        else:
+            connection.execute(
+                """
+                create table if not exists pins (
+                    id integer primary key autoincrement,
+                    name text not null,
+                    origin text not null,
+                    message text not null,
+                    lat real not null,
+                    lng real not null,
+                    is_approved integer not null default 1,
+                    created_at text not null default current_timestamp
+                )
+                """
+            )
+            connection.execute(
+                """
+                create table if not exists visits (
+                    id integer primary key autoincrement,
+                    created_at text not null default current_timestamp
+                )
+                """
+            )
         connection.execute(
             "create index if not exists idx_pins_approved_created on pins (is_approved, created_at desc)"
         )
-        connection.execute(
-            """
-            create table if not exists visits (
-                id integer primary key autoincrement,
-                created_at text not null default current_timestamp
-            )
-            """
-        )
+
+
+def param_placeholder() -> str:
+    return "%s" if DATABASE_URL else "?"
+
+
+def approved_condition() -> str:
+    return "is_approved = true" if DATABASE_URL else "is_approved = 1"
 
 
 def record_visit() -> None:
     with get_connection() as connection:
         connection.execute(
-            "insert into visits (created_at) values (?)",
+            f"insert into visits (created_at) values ({param_placeholder()})",
             (datetime.now(timezone.utc).isoformat(),),
         )
 
@@ -94,7 +133,7 @@ def row_to_pin(row: sqlite3.Row) -> dict[str, Any]:
         "lat": row["lat"],
         "lng": row["lng"],
         "isApproved": bool(row["is_approved"]),
-        "createdAt": row["created_at"],
+        "createdAt": str(row["created_at"]),
     }
 
 
@@ -214,10 +253,10 @@ def get_visits() -> Any:
 def get_pins() -> Any:
     with get_connection() as connection:
         rows = connection.execute(
-            """
+            f"""
             select id, name, origin, message, lat, lng, is_approved, created_at
             from pins
-            where is_approved = 1
+            where {approved_condition()}
             order by created_at desc
             limit 250
             """
@@ -244,28 +283,48 @@ def create_pin() -> Any:
         return jsonify({"code": error_code, "error": error}), 400
 
     with get_connection() as connection:
-        cursor = connection.execute(
-            """
-            insert into pins (name, origin, message, lat, lng, is_approved, created_at)
-            values (?, ?, ?, ?, ?, 1, ?)
-            """,
-            (
-                pin["name"],
-                pin["origin"],
-                pin["message"],
-                pin["lat"],
-                pin["lng"],
-                datetime.now(timezone.utc).isoformat(),
-            ),
-        )
-        row = connection.execute(
-            """
-            select id, name, origin, message, lat, lng, is_approved, created_at
-            from pins
-            where id = ?
-            """,
-            (cursor.lastrowid,),
-        ).fetchone()
+        created_at = datetime.now(timezone.utc).isoformat()
+        placeholder = param_placeholder()
+
+        if DATABASE_URL:
+            row = connection.execute(
+                f"""
+                insert into pins (name, origin, message, lat, lng, is_approved, created_at)
+                values ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, true, {placeholder})
+                returning id, name, origin, message, lat, lng, is_approved, created_at
+                """,
+                (
+                    pin["name"],
+                    pin["origin"],
+                    pin["message"],
+                    pin["lat"],
+                    pin["lng"],
+                    created_at,
+                ),
+            ).fetchone()
+        else:
+            cursor = connection.execute(
+                """
+                insert into pins (name, origin, message, lat, lng, is_approved, created_at)
+                values (?, ?, ?, ?, ?, 1, ?)
+                """,
+                (
+                    pin["name"],
+                    pin["origin"],
+                    pin["message"],
+                    pin["lat"],
+                    pin["lng"],
+                    created_at,
+                ),
+            )
+            row = connection.execute(
+                """
+                select id, name, origin, message, lat, lng, is_approved, created_at
+                from pins
+                where id = ?
+                """,
+                (cursor.lastrowid,),
+            ).fetchone()
 
     return jsonify(row_to_pin(row)), 201
 

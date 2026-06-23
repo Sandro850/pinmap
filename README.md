@@ -19,6 +19,8 @@ Abra:
 http://localhost:5000
 ```
 
+Sem `DATABASE_URL`, o app usa SQLite local em `pinmap.db`.
+
 ## Testar a API
 
 Listar pins aprovados:
@@ -52,7 +54,7 @@ http://localhost:8000
 - Mostra um mapa com Leaflet.
 - Conta page views/acessos totais no backend.
 - Permite clicar no mapa ou usar geolocalizacao.
-- Salva origem e coordenadas em SQLite.
+- Salva origem e coordenadas no banco configurado: PostgreSQL/Supabase em producao ou SQLite local.
 - Lista pins aprovados.
 - Tem i18n simples em `pt-BR`, `en`, `es` e `fr`.
 - Usa `localStorage` apenas como fallback se o backend estiver indisponivel.
@@ -64,7 +66,7 @@ http://localhost:8000
 - `POST /api/pins`: cria um pin depois de validar e moderar.
 - `GET /api/visits`: retorna o total global de page views/acessos.
 
-O SQLite fica em `pinmap.db`, criado automaticamente ao iniciar o app. O contador registra uma linha na tabela `visits` a cada acesso a `/`; ele representa page views, nao visitantes unicos.
+As tabelas `pins` e `visits` sao criadas automaticamente ao iniciar o app. O contador registra uma linha na tabela `visits` a cada acesso a `/`; ele representa page views, nao visitantes unicos.
 
 ## Validacao
 
@@ -116,13 +118,25 @@ O app nao depende de `FLASK_DEBUG` em producao. Se quiser debug local, rode:
 FLASK_DEBUG=1 python app.py
 ```
 
+### Banco de Dados em Producao
+
+O Render Free usa filesystem efemero, entao um SQLite local pode ser apagado em restart/redeploy. Para manter pins e visitas, configure um PostgreSQL/Supabase e adicione a variavel de ambiente:
+
+```text
+DATABASE_URL=postgresql://USUARIO:SENHA@HOST:PORTA/BANCO?sslmode=require
+```
+
+Quando `DATABASE_URL` existe, o Pinmap usa PostgreSQL. Quando nao existe, usa SQLite local para desenvolvimento.
+
+No Supabase, copie a connection string do projeto e configure como `DATABASE_URL` no Render. Em muitos casos, use a string com `sslmode=require`.
+
 ## Nota Sobre SQLite
 
-SQLite e suficiente para demo, portfolio e aprendizado. Em deploys gratuitos/efemeros, arquivos locais podem ser apagados quando o servico reinicia ou redeploya. Para producao real, prefira PostgreSQL, Supabase ou outro banco persistente externo.
+SQLite e suficiente para desenvolvimento local, demo offline e aprendizado. Em deploys gratuitos/efemeros, arquivos locais podem ser apagados quando o servico reinicia ou redeploya. Para a demo publica online, prefira PostgreSQL/Supabase via `DATABASE_URL`.
 
 ## Proximos Passos Para Producao Real
 
-- Migrar SQLite para PostgreSQL ou Supabase.
+- Usar PostgreSQL/Supabase com backups configurados.
 - Adicionar rate limit persistente no proxy/plataforma ou Redis.
 - Configurar logs e alertas.
 - Configurar backups do banco.
@@ -139,7 +153,7 @@ pinmap/
 ├── README.md
 ├── .gitignore
 ├── requirements.txt
-├── pinmap.db              # Criado automaticamente, ignorado pelo Git
+├── pinmap.db              # Criado automaticamente quando DATABASE_URL nao existe
 ├── templates/
 │   └── index.html
 └── static/
