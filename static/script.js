@@ -121,6 +121,7 @@ async function saveBackendPin(pin) {
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     const error = new Error(data.error || t("error.backendSave"));
+    error.code = data.code;
     error.status = response.status;
     throw error;
   }
@@ -294,7 +295,15 @@ pinForm.addEventListener("submit", async (event) => {
     console.error(error);
 
     if (error.status >= 400 && error.status < 500) {
-      alert(error.status === 429 ? t("error.rateLimited") : t("error.backendRejected"));
+      const errorKeyByCode = {
+        blocked_origin: "error.blockedOrigin",
+        invalid_coordinates: "error.invalidCoordinates",
+        invalid_origin: "error.invalidOrigin",
+      };
+      const messageKey = error.status === 429
+        ? "error.rateLimited"
+        : errorKeyByCode[error.code] || "error.backendRejected";
+      alert(t(messageKey));
       return;
     }
 

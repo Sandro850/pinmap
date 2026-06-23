@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 import os
+import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -9,13 +10,24 @@ from typing import Any
 
 from flask import Flask, jsonify, render_template, request
 
-from moderation import moderate_pin
+from moderation import normalize_text
 
 
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE_PATH = BASE_DIR / "pinmap.db"
 ALLOWED_PIN_FIELDS = {"name", "origin", "lat", "lng", "message"}
-MAX_POSTS_PER_WINDOW = 10
+BLOCKED_ORIGIN_TERMS = {
+    "spam",
+    "golpe",
+    "fraude",
+    "scam",
+    "phishing",
+    "idiota",
+    "ameaca",
+    "matar",
+}
+URL_PATTERN = re.compile(r"(https?://|www\\.|\\.com\\b|\\.net\\b|\\.org\\b)", re.IGNORECASE)
+MAX_POSTS_PER_WINDOW = 30
 RATE_LIMIT_WINDOW_SECONDS = 60
 POST_TIMESTAMPS_BY_IP: dict[str, list[float]] = {}
 
@@ -111,41 +123,48 @@ def parse_coordinate(value: Any, field_name: str, minimum: float, maximum: float
     return coordinate, None
 
 
-def validate_pin(payload: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
+def is_blocked_origin(origin: str) -> bool:
+    normalized_origin = normalize_text(origin)
+    return any(term in normalized_origin for term in BLOCKED_ORIGIN_TERMS)
+
+
+def validate_pin(payload: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None, str | None]:
     unexpected_fields = set(payload) - ALLOWED_PIN_FIELDS
     if unexpected_fields:
-        return None, "Campos nao permitidos no payload."
+        return None, "invalid_origin", "Campos nao permitidos no payload."
 
     name = clean_text(payload.get("name"), "Visitante anonimo") or "Visitante anonimo"
     origin = clean_text(payload.get("origin"))
     message = ""
 
     if len(name) > 40:
-        return None, "name deve ter no maximo 40 caracteres."
+        return None, "invalid_origin", "name deve ter no maximo 40 caracteres."
 
     if contains_html(name):
-        return None, "name nao pode conter HTML."
+        return None, "invalid_origin", "name nao pode conter HTML."
 
     if not origin:
-        return None, "origin e obrigatorio."
+        return None, "invalid_origin", "origin e obrigatorio."
 
     if len(origin) > 80:
-        return None, "origin deve ter no maximo 80 caracteres."
+        return None, "invalid_origin", "origin deve ter no maximo 80 caracteres."
 
     if contains_html(origin):
-        return None, "origin nao pode conter HTML."
+        return None, "blocked_origin", "origin nao pode conter HTML."
+
+    if URL_PATTERN.search(origin):
+        return None, "blocked_origin", "origin nao pode conter URL."
+
+    if is_blocked_origin(origin):
+        return None, "blocked_origin", "origin bloqueada pela moderacao."
 
     lat, lat_error = parse_coordinate(payload.get("lat"), "lat", -90, 90)
     if lat_error:
-        return None, lat_error
+        return None, "invalid_coordinates", lat_error
 
     lng, lng_error = parse_coordinate(payload.get("lng"), "lng", -180, 180)
     if lng_error:
-        return None, lng_error
-
-    moderation = moderate_pin(name, origin)
-    if not moderation["allowed"]:
-        return None, "Pin bloqueado pela moderacao."
+        return None, "invalid_coordinates", lng_error
 
     return {
         "name": name,
@@ -153,7 +172,7 @@ def validate_pin(payload: dict[str, Any]) -> tuple[dict[str, Any] | None, str | 
         "message": message,
         "lat": lat,
         "lng": lng,
-    }, None
+    }, None, None
 
 
 @app.get("/")
@@ -190,10 +209,10 @@ def create_pin() -> Any:
     if not isinstance(payload, dict):
         return jsonify({"error": "JSON invalido."}), 400
 
-    pin, error = validate_pin(payload)
+    pin, error_code, error = validate_pin(payload)
 
     if error:
-        return jsonify({"error": error}), 400
+        return jsonify({"code": error_code, "error": error}), 400
 
     with get_connection() as connection:
         cursor = connection.execute(
