@@ -1,6 +1,5 @@
 function initializePinmap() {
 const STORAGE_KEYS = {
-  visits: "pinmap:visits",
   pins: "pinmap:pins",
 };
 
@@ -145,11 +144,21 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
-function incrementVisitCounter() {
-  const visits = Number(localStorage.getItem(STORAGE_KEYS.visits) ?? 0) + 1;
-  localStorage.setItem(STORAGE_KEYS.visits, String(visits));
-  visitCount.textContent = visits;
+async function refreshVisitCounter() {
   visitLabel.textContent = t("counter.label");
+
+  try {
+    const response = await fetch("/api/visits");
+    if (!response.ok) {
+      throw new Error("Could not load visit counter.");
+    }
+
+    const data = await response.json();
+    visitCount.textContent = Number(data.visits || 0);
+  } catch (error) {
+    console.error(error);
+    visitCount.textContent = "0";
+  }
 }
 
 function updateDraftMarker(lat, lng) {
@@ -322,7 +331,7 @@ pinForm.addEventListener("submit", async (event) => {
   }
 });
 
-incrementVisitCounter();
+refreshVisitCounter();
 setTimeout(refreshPins, 700);
 }
 

@@ -1,7 +1,7 @@
 const translations = {
   "pt-BR": {
     "hero.title": "Marque de onde voce veio.",
-    "counter.label": "visitas suas neste navegador",
+    "counter.label": "visitas totais",
     "language.label": "Idioma",
     "form.title": "Deixe seu pin",
     "form.origin": "Origem",
@@ -28,7 +28,7 @@ const translations = {
   },
   en: {
     "hero.title": "Mark where you came from.",
-    "counter.label": "your visits in this browser",
+    "counter.label": "total visits",
     "language.label": "Language",
     "form.title": "Leave your pin",
     "form.origin": "Origin",
@@ -55,7 +55,7 @@ const translations = {
   },
   es: {
     "hero.title": "Marca de donde vienes.",
-    "counter.label": "tus visitas en este navegador",
+    "counter.label": "visitas totales",
     "language.label": "Idioma",
     "form.title": "Deja tu pin",
     "form.origin": "Origen",
@@ -82,7 +82,7 @@ const translations = {
   },
   fr: {
     "hero.title": "Marquez d'ou vous venez.",
-    "counter.label": "vos visites dans ce navigateur",
+    "counter.label": "visites totales",
     "language.label": "Langue",
     "form.title": "Laissez votre pin",
     "form.origin": "Origine",

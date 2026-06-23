@@ -60,6 +60,29 @@ def init_db() -> None:
         connection.execute(
             "create index if not exists idx_pins_approved_created on pins (is_approved, created_at desc)"
         )
+        connection.execute(
+            """
+            create table if not exists visits (
+                id integer primary key autoincrement,
+                created_at text not null default current_timestamp
+            )
+            """
+        )
+
+
+def record_visit() -> None:
+    with get_connection() as connection:
+        connection.execute(
+            "insert into visits (created_at) values (?)",
+            (datetime.now(timezone.utc).isoformat(),),
+        )
+
+
+def count_visits() -> int:
+    with get_connection() as connection:
+        row = connection.execute("select count(*) as total from visits").fetchone()
+
+    return int(row["total"])
 
 
 def row_to_pin(row: sqlite3.Row) -> dict[str, Any]:
@@ -178,7 +201,13 @@ def validate_pin(payload: dict[str, Any]) -> tuple[dict[str, Any] | None, str | 
 @app.get("/")
 @app.get("/index.html")
 def index() -> Any:
+    record_visit()
     return render_template("index.html")
+
+
+@app.get("/api/visits")
+def get_visits() -> Any:
+    return jsonify({"visits": count_visits()})
 
 
 @app.get("/api/pins")

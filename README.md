@@ -50,6 +50,7 @@ http://localhost:8000
 ## O Que Ele Faz
 
 - Mostra um mapa com Leaflet.
+- Conta page views/acessos totais no backend.
 - Permite clicar no mapa ou usar geolocalizacao.
 - Salva origem e coordenadas em SQLite.
 - Lista pins aprovados.
@@ -61,8 +62,9 @@ http://localhost:8000
 
 - `GET /api/pins`: lista pins aprovados.
 - `POST /api/pins`: cria um pin depois de validar e moderar.
+- `GET /api/visits`: retorna o total global de page views/acessos.
 
-O SQLite fica em `pinmap.db`, criado automaticamente ao iniciar o app.
+O SQLite fica em `pinmap.db`, criado automaticamente ao iniciar o app. O contador registra uma linha na tabela `visits` a cada acesso a `/`; ele representa page views, nao visitantes unicos.
 
 ## Validacao
 
@@ -165,10 +167,10 @@ Para limpar o fallback local do navegador, abra o DevTools no site e rode no Con
 localStorage.removeItem("pinmap:pins");
 ```
 
-Para zerar tambem o contador local de visitas:
+Para zerar tambem o contador global de page views em desenvolvimento:
 
-```js
-localStorage.removeItem("pinmap:visits");
+```bash
+sqlite3 pinmap.db "DELETE FROM visits; DELETE FROM sqlite_sequence WHERE name='visits';"
 ```
 
 Nao existe rota publica para apagar pins, e o site nao exibe botao publico de limpeza.
